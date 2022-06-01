@@ -10,7 +10,7 @@ import time
 from numpy import *
 from timeit import default_timer as timer
 
-os.environ["CUDA_VISIBLE_DEVICES"] = "2"  # 指定第一块gpu
+os.environ["CUDA_VISIBLE_DEVICES"] = "3"  # 指定第一块gpu
 
 
 import torch
@@ -62,6 +62,7 @@ def plot_result(pil_img, prob, boxes,save_name=None,imshow=False, imwrite=False)
 
     if len(prob) == 0:
         print("[INFO] NO box detect !!! ")
+        # 存下图像，这里不用存了
         if imwrite:
             if not os.path.exists("./result/pred_no"):
                 os.makedirs("./result/pred_no")
@@ -85,6 +86,8 @@ def plot_result(pil_img, prob, boxes,save_name=None,imshow=False, imwrite=False)
         if not os.path.exists("./result/pred"):
             os.makedirs('./result/pred')
         cv2.imwrite('./result/pred/{}'.format(save_name), opencvImage)
+    
+    return opencvImage
 
 
 
@@ -119,13 +122,13 @@ def detect(im, model, transform,prob_threshold=0.7):
 
 
 if __name__ == "__main__":
-    detr = detr_resnet50(pretrained=False,num_classes=1).eval()  # <------这里类别不需要+1
-    state_dict =  torch.load('outputs/checkpoint99.pth')   # <-----------修改加载模型的路径
+    detr = detr_resnet50(pretrained=False,num_classes=1+1).eval()  # <------这里类别不需要+1
+    state_dict =  torch.load('outputs/checkpoint0299.pth')   # <-----------修改加载模型的路径
     detr.load_state_dict(state_dict["model"])
     detr.to(device)
 
     # video
-    vid = cv2.VideoCapture("/home/lihuiqian/mycode/test3/data/images/陈克平.mp4")  # 修改路径
+    vid = cv2.VideoCapture("/home/lihuiqian/mycode/data/video/test.mp4")  # 修改路径
     video_frame_cnt = int(vid.get(7))
     video_width = int(vid.get(3))
     video_height = int(vid.get(4))
@@ -134,7 +137,7 @@ if __name__ == "__main__":
     times = [] 
 
     fourcc = cv2.VideoWriter_fourcc('m', 'p', '4', 'v')
-    videoWriter = cv2.VideoWriter('陈克平output.mp4', fourcc, video_fps, (video_width, video_height))
+    videoWriter = cv2.VideoWriter('test.mp4', fourcc, video_fps, (video_width, video_height))
 
     for i in range(video_frame_cnt):
         prev_time = timer()
@@ -143,8 +146,10 @@ if __name__ == "__main__":
         image_pil = Image.fromarray(cv2.cvtColor(img_ori,cv2.COLOR_BGR2RGB))  
 
         scores, boxes, waste_time = detect(image_pil, detr, transform)
-        image = plot_result(image_pil, scores, boxes,save_name=str(i)+".jpg",imshow=False, imwrite=True)
+        # image = plot_result(image_pil, scores, boxes,save_name=str(i)+".jpg",imshow=False, imwrite=True)
+        image = plot_result(image_pil, scores, boxes,save_name=str(i)+".jpg",imshow=False, imwrite=False)
 
+        result = np.asarray(image)
         videoWriter.write(image)
         if cv2.waitKey(1) & 0xFF == ord('q'):
             break
